@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Numerics;
+using System.Security.Claims;
 
 namespace MVC.Controllers
 {
@@ -10,6 +11,19 @@ namespace MVC.Controllers
         public ReservationController(ReservationContext reservationContext)
         {
             _reservationContext = reservationContext;
+        }
+
+        public async Task<IActionResult> Index()
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var reservations = await _reservationContext.ReadAllAsync();
+
+            var userReservations = reservations
+                .Where(a => a.UserId == userId)
+                .OrderBy(a => a.Date)
+                .ThenBy(a => a.StartTime);
+
+            return View(userReservations);
         }
 
         [HttpPost]

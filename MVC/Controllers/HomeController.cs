@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using MVC.Models;
 using System.Diagnostics;
+using System.Security.Claims;
+using DataLayer.Contexts;
 
 namespace MVC.Controllers
 {
@@ -15,6 +17,7 @@ namespace MVC.Controllers
 
         public IActionResult Index()
         {
+            // add logic
             return View();
         }
 

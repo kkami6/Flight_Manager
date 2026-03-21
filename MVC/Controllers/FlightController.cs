@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace MVC.Controllers
 {
@@ -9,6 +10,13 @@ namespace MVC.Controllers
         public FlightController(FlightContext flightContext)
         {
             _flightContext = flightContext;
+        }
+
+        public async Task<IActionResult> Index()
+        {
+            var flights = await _flightContext.ReadAllAsync();
+
+            return View(flights);
         }
 
         [HttpPost]
