@@ -8,47 +8,47 @@ using BusinessLayer.Models;
 
 namespace DataLayer.Contexts
 {
-    public class HolidayContext : IDB<Holiday, int>
+    public class FlightContext : IDB<Flight, int>
     {
-        private readonly PlannerDbContext context;
+        private readonly FlightManagerDbContext context;
 
-        public HolidayContext(PlannerDbContext context)
+        public FlightContext(FlightManagerDbContext context)
         {
             this.context = context;
         }
 
-        public async Task CreateAsync(Holiday item)
+        public async Task CreateAsync(Flight item)
         {
             try
             {
-                context.Set<Holiday>().Add(item);
+                context.Set<Flight>().Add(item);
                 await context.SaveChangesAsync();
             }
             catch (Exception ex)
             { throw new Exception(ex.Message); }
         }
 
-        public async Task<Holiday> ReadAsync(int key)
+        public async Task<Flight> ReadAsync(int key)
         {
             try
-            { return await context.Set<Holiday>().FirstOrDefaultAsync(h => h.ActivityId == key); }
+            { return await context.Set<Flight>().FirstOrDefaultAsync(f => f.ActivityId == key); }
             catch (Exception ex)
             { throw new Exception(ex.Message); }
         }
 
-        public async Task<IEnumerable<Holiday>> ReadAllAsync()
+        public async Task<IEnumerable<Flight>> ReadAllAsync()
         {
             try
-            { return await context.Set<Holiday>().OrderBy(h => h.Date).ToListAsync(); }
+            { return await context.Set<Flight>().OrderBy(f => f.Date).ToListAsync(); }
             catch (Exception ex)
             { throw new Exception(ex.Message); }
         }
 
-        public async Task UpdateAsync(Holiday item)
+        public async Task UpdateAsync(Flight item)
         {
             try
             {
-                context.Set<Holiday>().Update(item);
+                context.Set<Flight>().Update(item);
                 await context.SaveChangesAsync();
             }
             catch (Exception ex)
@@ -59,12 +59,12 @@ namespace DataLayer.Contexts
         {
             try
             {
-                var holiday = await context.Set<Holiday>().FindAsync(key);
+                var flight = await context.Set<Flight>().FindAsync(key);
 
-                if (holiday == null)
-                    throw new ArgumentException("Holiday not found.");
+                if (flight == null)
+                    throw new ArgumentException("flight not found.");
 
-                context.Set<Holiday>().Remove(holiday);
+                context.Set<Flight>().Remove(flight);
                 await context.SaveChangesAsync();
             }
             catch (Exception ex)
