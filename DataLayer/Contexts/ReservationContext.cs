@@ -17,12 +17,20 @@ namespace DataLayer.Contexts
             this.context = context;
         }
 
-        public async Task CreateAsync(Reservation item)
+        public async Task CreateAsync(IEnumerable<Reservation> items)
         {
             try
             {
-                context.Set<Reservation>().Add(item);
-                await context.SaveChangesAsync();
+                if (context.Set<Flight>().Where(f => f.id == items.First().flightId).capacity > items.Count())
+                {
+                    foreach (var item in items)
+                    {
+                        context.Set<Reservation>().Add(item);
+                        context.Set<Flight>().Where(f => f.d == item.flightId).capacity = context.Set<Flight>().Where(f => f.id == item.id).capacity - 1;
+                    }
+                    await context.SaveChangesAsync();
+                }
+
             }
             catch (Exception ex)
             { throw new Exception(ex.Message); }
@@ -71,4 +79,15 @@ namespace DataLayer.Contexts
             { throw new Exception(ex.Message); }
         }
 
+        public async Task<IEnumerable<Reservation>> GetReservationsByDateAsync(string email)
+        {
+            return await context.Set<Reservation>()
+                .Where(r => r.Email == email)
+                .OrderBy(r => r.FirstName)
+                .ThenBy(r => r.LastName)
+                .ToListAsync();
+        }
+
+    }
+}
 

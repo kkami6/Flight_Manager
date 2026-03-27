@@ -71,4 +71,13 @@ namespace DataLayer.Contexts
             { throw new Exception(ex.Message); }
         }
 
+        public async Task<IEnumerable<Flight>> GetFlightAfterDateAsync(DateOnly date)
+        {
+            return await context.Set<Flight>()
+                .Where(f => f.Date >= date)
+                .OrderBy(f => f.startTime)
+                .ToListAsync();
+        }
 
+    }
+}
