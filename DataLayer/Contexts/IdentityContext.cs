@@ -12,10 +12,10 @@ namespace DataLayer.Contexts
 {
     public class IdentityContext
     {
-        UserManager<User> userManager;
+        User<User> userManager;
         FlightManagerDbContext context;
 
-        public IdentityContext(FlightManagerDbContext context, UserManager<User> userManager)
+        public IdentityContext(FlightManagerDbContext context, User<User> userManager)
         {
             this.context = context;
             this.userManager = userManager;
