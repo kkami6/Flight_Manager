@@ -24,7 +24,7 @@ namespace MVC.Controllers
         {
             try
             {
-                await _identityContext.CreateUserAsync(username, password, email, firstName, lastName, Role.User);
+                await _identityContext.CreateUserAsync(username, password, email, firstName, lastName, role);
                 return RedirectToAction("Login");
             }
             catch (Exception ex)

@@ -1,6 +1,7 @@
 ﻿using BusinessLayer.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using BusinessLayer.Models;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -12,13 +13,12 @@ namespace DataLayer.Contexts
 {
     public class IdentityContext
     {
-        User<User> userManager;
-        FlightManagerDbContext context;
-
-        public IdentityContext(FlightManagerDbContext context, User<User> userManager)
+        private readonly UserManager<User> _userManager;
+        private readonly FlightManagerDbContext _context;
+        public IdentityContext(FlightManagerDbContext context, UserManager<User> userManager)
         {
-            this.context = context;
-            this.userManager = userManager;
+            this._context = context;
+            this._userManager = userManager;
         }
 
         #region Seeding Data with this Project
@@ -27,7 +27,7 @@ namespace DataLayer.Contexts
         {
             //await context.Database.MigrateAsync();
 
-            int userRoles = await context.UserRoles.CountAsync();
+            int userRoles = await _context.UserRoles.CountAsync();
 
             if (userRoles == 0)
             {
@@ -37,13 +37,13 @@ namespace DataLayer.Contexts
 
         public async Task ConfigureAdminAccountAsync(string password, string email)
         {
-            User adminIdentityUser = await context.Users.FirstAsync();
+            User adminIdentityUser = await _context.Users.FirstAsync();
 
             if (adminIdentityUser != null)
             {
-                await userManager.AddToRoleAsync(adminIdentityUser, Role.Administrator.ToString());
-                await userManager.AddPasswordAsync(adminIdentityUser, password);
-                await userManager.SetEmailAsync(adminIdentityUser, email);
+                await _userManager.AddToRoleAsync(adminIdentityUser, Role.Administrator.ToString());
+                await _userManager.AddPasswordAsync(adminIdentityUser, password);
+                await _userManager.SetEmailAsync(adminIdentityUser, email);
             }
         }
 
@@ -55,7 +55,13 @@ namespace DataLayer.Contexts
         {
             try
             {
-                User user = new User(username, email, firstName, lastName);
+                User user = new User
+                {
+                    UserName = username,
+                    Email = email,
+                    FirstName = firstName,
+                    LastName = lastName
+                };
                 IdentityResult result = await userManager.CreateAsync(user, password);
 
                 if (!result.Succeeded)

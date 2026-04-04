@@ -1,9 +1,15 @@
+using BusinessLayer.Interfaces;
+using FluentEmail.Smtp;
+using System.Net;
+using System.Net.Mail;
+
 namespace MVC
 {
     public class Program
     {
         public static void Main(string[] args)
         {
+
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
@@ -29,6 +35,24 @@ namespace MVC
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
+
+            // 1. Setup the SMTP Sender (Using Gmail as an example)
+            var sender = new SmtpSender(() => new SmtpClient("smtp.gmail.com")
+            {
+                UseDefaultCredentials = false,
+                Credentials = new NetworkCredential("your-email@gmail.com", "your-app-password"),
+                EnableSsl = true,
+                Port = 587
+            });
+
+            // 2. Register FluentEmail
+            builder.Services
+                .AddFluentEmail("your-email@gmail.com")
+                .AddRazorRenderer() // For templates
+                .AddSmtpSender(sender);
+
+            // 3. Register your custom service
+            builder.Services.AddScoped<IEmailService, EmailService>();
 
             app.Run();
         }

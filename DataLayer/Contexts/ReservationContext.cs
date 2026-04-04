@@ -1,45 +1,58 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using BusinessLayer.Interfaces;
+using BusinessLayer.Models;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using BusinessLayer.Models;
 
 namespace DataLayer.Contexts
 {
     public class ReservationContext : IDB<Reservation, int>
     {
         private readonly FlightManagerDbContext context;
+        private readonly IEmailService _emailService;
 
-        public ReservationContext(FlightManagerDbContext context)
+        public ReservationContext(FlightManagerDbContext context, IEmailService emailService)
         {
             this.context = context;
+            _emailService = emailService;
         }
 
         public async Task CreateAsync(IEnumerable<Reservation> items)
         {
             try
             {
-                if (context.Set<Flight>().Where(f => f.id == items.First().flightId).capacity > items.Count())
+                var flightId = items.First().FlightId;
+                var flight = context.Set<Flight>().FirstOrDefault(f => f.Id == flightId);
+                if (flight != null && flight.PassengerCapacity > items.Count())
                 {
                     foreach (var item in items)
                     {
                         context.Set<Reservation>().Add(item);
-                        context.Set<Flight>().Where(f => f.d == item.flightId).capacity = context.Set<Flight>().Where(f => f.id == item.id).capacity - 1;
+                        flight.PassengerCapacity = flight.PassengerCapacity - 1;
+                        await _emailService.SendReservationConfirmationAsync(item.ContactEmail, item.FlightId, item.Id);
                     }
                     await context.SaveChangesAsync();
+                    
                 }
+
 
             }
             catch (Exception ex)
             { throw new Exception(ex.Message); }
         }
 
+        public async Task CreateAsync(Reservation item)
+        {
+            await CreateAsync(new List<Reservation> { item });
+        }
+
         public async Task<Reservation> ReadAsync(int key)
         {
             try
-            { return await context.Set<Reservation>().FirstOrDefaultAsync(r => r.ActivityId == key); }
+            { return await context.Set<Reservation>().FirstOrDefaultAsync(r => r.Id == key); }
             catch (Exception ex)
             { throw new Exception(ex.Message); }
         }
@@ -47,7 +60,7 @@ namespace DataLayer.Contexts
         public async Task<IEnumerable<Reservation>> ReadAllAsync()
         {
             try
-            { return await context.Set<Reservation>().OrderBy(r => r.Date).ToListAsync(); }
+            { return await context.Set<Reservation>().OrderBy(r => r.Flight.DepartureTime.Date).ToListAsync(); }
             catch (Exception ex)
             { throw new Exception(ex.Message); }
         }
@@ -82,7 +95,7 @@ namespace DataLayer.Contexts
         public async Task<IEnumerable<Reservation>> GetReservationsByDateAsync(string email)
         {
             return await context.Set<Reservation>()
-                .Where(r => r.Email == email)
+                .Where(r => r.ContactEmail == email)
                 .OrderBy(r => r.FirstName)
                 .ThenBy(r => r.LastName)
                 .ToListAsync();

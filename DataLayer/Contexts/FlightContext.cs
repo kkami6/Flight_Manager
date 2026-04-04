@@ -31,7 +31,7 @@ namespace DataLayer.Contexts
         public async Task<Flight> ReadAsync(int key)
         {
             try
-            { return await context.Set<Flight>().FirstOrDefaultAsync(f => f.ActivityId == key); }
+            { return await context.Set<Flight>().FirstOrDefaultAsync(f => f.Id == key); }
             catch (Exception ex)
             { throw new Exception(ex.Message); }
         }
@@ -39,7 +39,7 @@ namespace DataLayer.Contexts
         public async Task<IEnumerable<Flight>> ReadAllAsync()
         {
             try
-            { return await context.Set<Flight>().OrderBy(f => f.Date).ToListAsync(); }
+            { return await context.Set<Flight>().OrderBy(f => f.DepartureTime).ToListAsync(); }
             catch (Exception ex)
             { throw new Exception(ex.Message); }
         }
@@ -74,8 +74,8 @@ namespace DataLayer.Contexts
         public async Task<IEnumerable<Flight>> GetFlightAfterDateAsync(DateOnly date)
         {
             return await context.Set<Flight>()
-                .Where(f => f.Date >= date)
-                .OrderBy(f => f.startTime)
+                .Where(f => DateOnly.FromDateTime(f.DepartureTime) >= date)
+                .OrderBy(f => f.DepartureTime)
                 .ToListAsync();
         }
 
