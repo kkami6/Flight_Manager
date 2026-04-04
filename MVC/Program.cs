@@ -34,22 +34,22 @@ namespace MVC
 
             app.MapControllerRoute(
                 name: "default",
-                pattern: "{controller=Home}/{action=Index}/{id?}");
+                pattern: "{controller=Home}/{action=Index}/{id?}"
+            );
 
-            // 1. Setup the SMTP Sender (Using Gmail as an example)
-            var sender = new SmtpSender(() => new SmtpClient("smtp.gmail.com")
-            {
-                UseDefaultCredentials = false,
-                Credentials = new NetworkCredential("your-email@gmail.com", "your-app-password"),
-                EnableSsl = true,
-                Port = 587
-            });
+            var emailSettings = builder.Configuration.GetSection("EmailSettings");
 
-            // 2. Register FluentEmail
             builder.Services
-                .AddFluentEmail("your-email@gmail.com")
-                .AddRazorRenderer() // For templates
-                .AddSmtpSender(sender);
+            .AddFluentEmail(emailSettings["DefaultFrom"])
+            .AddSmtpSender(new SmtpClient(emailSettings["SmtpServer"])
+              {
+                  Port = int.Parse(emailSettings["Port"]),
+                  Credentials = new NetworkCredential(
+                      emailSettings["Username"],
+                      emailSettings["AppPassword"]
+                  ),
+                  EnableSsl = true
+              });
 
             // 3. Register your custom service
             builder.Services.AddScoped<IEmailService, EmailService>();

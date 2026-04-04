@@ -1,4 +1,5 @@
 ﻿using FluentEmail.Core;
+using BusinessLayer.Interfaces;
 
 public class EmailService : IEmailService
 {
@@ -9,7 +10,7 @@ public class EmailService : IEmailService
         _fluentEmail = fluentEmail;
     }
 
-    public async Task SendReservationConfirmationAsync(string userEmail, string flightNumber, string reservationId)
+    public async Task SendReservationConfirmationAsync(string userEmail, int flightNumber, int reservationId)
     {
         var email = _fluentEmail
             .To(userEmail)
