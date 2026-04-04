@@ -13,18 +13,17 @@ namespace DataLayer.Contexts
 {
     public class FlightManagerDbContext : IdentityDbContext<User>
     {
-    public FlightManagerDbContext(DbContextOptions<FlightManagerDbContext> options) : base(options)
-    {
+        public FlightManagerDbContext(DbContextOptions<FlightManagerDbContext> options) : base(options)
+        {
 
-    }
+        }
 
         public DbSet<Flight> Flights { get; set; }
 
         public DbSet<Reservation> Reservations { get; set; }
 
-    }
 
-       protected override void OnModelCreating(ModelBuilder builder)
+        protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
 
@@ -36,3 +35,4 @@ namespace DataLayer.Contexts
 
 
     }
+}

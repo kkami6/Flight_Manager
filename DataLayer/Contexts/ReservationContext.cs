@@ -26,19 +26,38 @@ namespace DataLayer.Contexts
             {
                 var flightId = items.First().FlightId;
                 var flight = context.Set<Flight>().FirstOrDefault(f => f.Id == flightId);
-                if (flight != null && flight.PassengerCapacity > items.Count())
+                if (flight != null)
                 {
-                    foreach (var item in items)
+                    int requestedBusinessSeats = items.Count(r => r.FlightType == "Business");
+                    int requestedRegularSeats = items.Count(r => r.FlightType == "Regular");
+
+                    if (flight.BusinessClassCapacity >= requestedBusinessSeats && flight.PassengerCapacity >= requestedRegularSeats)
                     {
-                        context.Set<Reservation>().Add(item);
-                        flight.PassengerCapacity = flight.PassengerCapacity - 1;
-                        await _emailService.SendReservationConfirmationAsync(item.ContactEmail, item.FlightId, item.Id);
+                        foreach (var item in items)
+                        {
+                            context.Set<Reservation>().Add(item);
+
+                            if (item.FlightType == "Business")
+                            {
+                                flight.BusinessClassCapacity--;
+                            }
+                            else
+                            {
+                                flight.PassengerCapacity--;
+                            }
+
+                            await _emailService.SendReservationConfirmationAsync(item.ContactEmail, item.FlightId, item.Id);
+                        }
+
+                        // Save changes only if everything is valid
+                        await context.SaveChangesAsync();
                     }
-                    await context.SaveChangesAsync();
-                    
+                    else
+                    {
+                        // Handle the case where there aren't enough seats
+                        throw new InvalidOperationException("Not enough seats available for the selected ticket types.");
+                    }
                 }
-
-
             }
             catch (Exception ex)
             { throw new Exception(ex.Message); }

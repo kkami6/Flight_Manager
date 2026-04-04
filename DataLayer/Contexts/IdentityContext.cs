@@ -41,7 +41,7 @@ namespace DataLayer.Contexts
 
             if (adminIdentityUser != null)
             {
-                await _userManager.AddToRoleAsync(adminIdentityUser, Role.Administrator.ToString());
+                await _userManager.AddToRoleAsync(adminIdentityUser, UserRole.Admin.ToString());
                 await _userManager.AddPasswordAsync(adminIdentityUser, password);
                 await _userManager.SetEmailAsync(adminIdentityUser, email);
             }
@@ -51,7 +51,8 @@ namespace DataLayer.Contexts
 
         #region CRUD
 
-        public async Task CreateUserAsync(string username, string password, string email, string firstName, string lastName, Role role)
+        public async Task CreateUserAsync(string username, string password, string email, string firstName, string lastName, string personalId, string address,
+    string phoneNumber, UserRole role)
         {
             try
             {
@@ -60,22 +61,27 @@ namespace DataLayer.Contexts
                     UserName = username,
                     Email = email,
                     FirstName = firstName,
-                    LastName = lastName
+                    LastName = lastName,
+                    PersonalId = personalId,
+                    Address = address,
+                    PhoneNumber = phoneNumber
                 };
-                IdentityResult result = await userManager.CreateAsync(user, password);
+                IdentityResult result = await _userManager.CreateAsync(user, password);
 
                 if (!result.Succeeded)
                 {
                     throw new ArgumentException(result.Errors.First().Description);
                 }
 
-                if (user.id == 0)
+                var adminUsers = await _userManager.GetUsersInRoleAsync(UserRole.Admin.ToString());
+
+                if (!adminUsers.Any())
                 {
-                    await userManager.AddToRoleAsync(user, Role.Administrator.ToString());
+                    await _userManager.AddToRoleAsync(user, UserRole.Admin.ToString());
                 }
                 else
                 {
-                    await userManager.AddToRoleAsync(user, Role.User.ToString());
+                    await _userManager.AddToRoleAsync(user, UserRole.Employee.ToString());
                 }
             }
             catch (Exception ex)
@@ -88,14 +94,14 @@ namespace DataLayer.Contexts
         {
             try
             {
-                User user = await userManager.FindByNameAsync(username);
+                User user = await _userManager.FindByNameAsync(username);
 
                 if (user == null)
                 {
                     return null;
                 }
 
-                bool isPasswordValid = await userManager.CheckPasswordAsync(user, password);
+                bool isPasswordValid = await _userManager.CheckPasswordAsync(user, password);
                 return isPasswordValid ? user : null;
 
             }
@@ -109,7 +115,7 @@ namespace DataLayer.Contexts
         {
             try
             {
-                return await userManager.FindByIdAsync(key);
+                return await _userManager.FindByIdAsync(key);
             }
             catch (Exception)
             {
@@ -121,7 +127,7 @@ namespace DataLayer.Contexts
         {
             try
             {
-                return await context.Users.ToListAsync();
+                return await _context.Users.ToListAsync();
             }
             catch (Exception ex)
             {
@@ -135,12 +141,12 @@ namespace DataLayer.Contexts
             {
                 if (!string.IsNullOrEmpty(username))
                 {
-                    User user = await context.Users.FindAsync(id);
+                    User user = await _context.Users.FindAsync(id);
                     if (user == null) throw new InvalidOperationException("User not found!");
                     user.UserName = username;
                     user.FirstName = firstName;
                     user.LastName = lastName;
-                    await userManager.UpdateAsync(user);
+                    await _userManager.UpdateAsync(user);
                 }
             }
             catch (Exception ex)
@@ -160,7 +166,7 @@ namespace DataLayer.Contexts
                     throw new InvalidOperationException("User not found for deletion!");
                 }
 
-                await userManager.DeleteAsync(user);
+                await _userManager.DeleteAsync(user);
             }
             catch (Exception ex)
             {
@@ -173,7 +179,7 @@ namespace DataLayer.Contexts
             try
             {
                 // Identity return Null if there is no user!
-                return await userManager.FindByNameAsync(firstName);
+                return await _userManager.FindByNameAsync(firstName);
             }
             catch (Exception ex)
             {
@@ -181,29 +187,29 @@ namespace DataLayer.Contexts
             }
         }
 
-        public async Task<User> GetUserByLastNameDateAsync(string lastName)
+        public async Task<IEnumerable<User>> GetUserByLastNameDateAsync(string lastName)
         {
-            return await context.Set<User>()
-                .Where(u => u.lastName == lastName)
-                .OrderBy(u => u.firstName)
+            return await _context.Set<User>()
+                .Where(u => u.LastName == lastName)
+                .OrderBy(u => u.FirstName)
                 .ToListAsync();
         }
 
-        public async Task<User> GetUserByUserNameDateAsync(string username)
+        public async Task<IEnumerable<User>> GetUserByUserNameDateAsync(string username)
         {
-            return await context.Set<User>()
-                .Where(u => u.username == username)
-                .OrderBy(u => u.firstName)
-                .ThenBy(u => u.lastName)
+            return await _context.Set<User>()
+                .Where(u => u.UserName == username)
+                .OrderBy(u => u.FirstName)
+                .ThenBy(u => u.LastName)
                 .ToListAsync();
         }
 
-        public async Task<User> GetUserByEmailDateAsync(string email)
+        public async Task<IEnumerable<User>> GetUserByEmailDateAsync(string email)
         {
-            return await context.Set<User>()
-                .Where(u => u.email == email)
-                .OrderBy(u => u.firstName)
-                .ThenBy(u => u.lastName)
+            return await _context.Set<User>()
+                .Where(u => u.Email == email)
+                .OrderBy(u => u.FirstName)
+                .ThenBy(u => u.LastName)
                 .ToListAsync();
         }
 
