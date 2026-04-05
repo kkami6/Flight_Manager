@@ -79,7 +79,12 @@ namespace DataLayer.Contexts
         public async Task<IEnumerable<Reservation>> ReadAllAsync()
         {
             try
-            { return await context.Set<Reservation>().OrderBy(r => r.Flight.DepartureTime.Date).ToListAsync(); }
+            {
+                // We remove the OrderBy for a second to see if the data appears
+                return await context.Set<Reservation>()
+                    .Include(r => r.Flight)
+                    .ToListAsync();
+            }
             catch (Exception ex)
             { throw new Exception(ex.Message); }
         }

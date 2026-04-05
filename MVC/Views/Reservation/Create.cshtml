@@ -1,0 +1,63 @@
+﻿@model MVC.ViewModels.BulkReservationViewModel
+
+<h2>Book a Flight</h2>
+
+<form asp-action="Create" id="bookingForm">
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <label>Select Flight</label>
+            <select asp-for="FlightId" class="form-control" asp-items="ViewBag.Flights"></select>
+        </div>
+        <div class="col-md-4">
+            <label>Contact Email</label>
+            <input asp-for="ContactEmail" class="form-control" />
+        </div>
+        <div class="col-md-2">
+            <label>Ticket Type</label>
+            <select asp-for="FlightType" class="form-control">
+                <option value="Regular">Regular</option>
+                <option value="Business">Business</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label>Number of Passengers</label>
+            <input type="number" id="passengerCount" class="form-control" value="1" min="1" max="10" />
+        </div>
+    </div>
+
+    <div id="passengerInputs">
+    </div>
+
+    <button type="submit" class="btn btn-primary mt-3">Confirm Reservation</button>
+</form>
+
+@section Scripts {
+    <script>
+        document.getElementById('passengerCount').addEventListener('input', function () {
+            const count = this.value;
+            const container = document.getElementById('passengerInputs');
+            container.innerHTML = ''; // Clear current
+
+            for (let i = 0; i < count; i++) {
+                container.innerHTML += `
+                    <div class="card mb-3 p-3">
+                        <h5>Passenger #${i + 1}</h5>
+                        <div class="row">
+                            <div class="col-md-4"><input name="Passengers[${i}].FirstName" class="form-control mb-2" placeholder="First Name" required /></div>
+                            <div class="col-md-4"><input name="Passengers[${i}].MiddleName" class="form-control mb-2" placeholder="Middle Name" /></div>
+                            <div class="col-md-4"><input name="Passengers[${i}].LastName" class="form-control mb-2" placeholder="Last Name" required /></div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4"><input name="Passengers[${i}].PersonalId" class="form-control" placeholder="Personal ID" required /></div>
+                            <div class="col-md-4"><input name="Passengers[${i}].PhoneNumber" class="form-control" placeholder="Phone Number" required /></div>
+                            <div class="col-md-4"><input name="Passengers[${i}].Nationality" class="form-control" placeholder="Nationality" required /></div>
+                        </div>
+                    </div>`;
+            }
+        });
+        // Trigger once on load
+        document.getElementById('passengerCount').dispatchEvent(new Event('input'));
+    </script>
+}

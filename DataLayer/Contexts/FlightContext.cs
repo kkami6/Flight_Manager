@@ -28,10 +28,14 @@ namespace DataLayer.Contexts
             { throw new Exception(ex.Message); }
         }
 
-        public async Task<Flight> ReadAsync(int key)
+        public async Task<Flight> ReadAsync(int id)
         {
             try
-            { return await context.Set<Flight>().FirstOrDefaultAsync(f => f.Id == key); }
+            {
+                return await context.Flights
+        .Include(f => f.Reservations) // This ensures reservations load on the details page
+        .FirstOrDefaultAsync(f => f.Id == id);
+            }
             catch (Exception ex)
             { throw new Exception(ex.Message); }
         }

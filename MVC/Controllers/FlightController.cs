@@ -1,20 +1,20 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Linq;
-using System.Threading.Tasks;
-using BusinessLayer.Models;
+﻿using BusinessLayer.Models;
 using DataLayer.Contexts;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using MVC.ViewModels;
 
 namespace MVC.Controllers
 {
     public class FlightController : Controller
     {
         private readonly FlightContext _flightContext;
+        private readonly ReservationContext _reservationContext;
 
-        public FlightController(FlightContext flightContext)
+        public FlightController(FlightContext flightContext, ReservationContext reservationContext)
         {
             _flightContext = flightContext;
+            _reservationContext = reservationContext;
         }
 
         public async Task<IActionResult> Index()
@@ -25,8 +25,8 @@ namespace MVC.Controllers
 
         public async Task<IActionResult> Details(int id, int page = 1)
         {
-            var flights = await _flightContext.ReadAllAsync();
-            var flight = flights.FirstOrDefault(f => f.Id == id);
+            // IMPROVEMENT: Use a method that finds ONE flight by ID, not all of them
+            var flight = await _flightContext.ReadAsync(id);
 
             if (flight == null) return NotFound();
 
@@ -45,52 +45,76 @@ namespace MVC.Controllers
             return View(flight);
         }
 
+        [Authorize(Roles = "Admin")] // Only Admins can enter
+        public async Task<IActionResult> AdminIndex()
+        {
+            // Fetch all flights
+            var flights = await _flightContext.ReadAllAsync();
+            // Fetch all reservations to link them
+            var allReservations = await _reservationContext.ReadAllAsync();
+
+            var viewModel = flights.Select(f => new AdminFlightViewModel
+            {
+                FlightId = f.Id,
+                DepartureLocation = f.DepartureLocation,
+                LandingLocation = f.LandingLocation,
+                DepartureTime = f.DepartureTime,
+                LandingTime = f.LandingTime,
+                TotalCapacity = f.PassengerCapacity + f.BusinessClassCapacity,
+                // Filter reservations belonging to THIS flight
+                Passengers = allReservations.Where(r => r.FlightId == f.Id).ToList()
+            }).ToList();
+
+            return View(viewModel);
+        }
+
         [Authorize(Roles = "Admin,Employee")]
         public IActionResult Create() => View();
 
         [HttpPost]
         [Authorize(Roles = "Admin,Employee")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(string departureLocation, string landingLocation,
-            DateTime departureTime, DateTime landingTime, string planeType, string planeId, string pilotName,
-            int passengerCapacity, int businessClassCapacity)
+        // IMPROVEMENT: Bind directly to the Flight object
+        public async Task<IActionResult> Create(Flight flight)
         {
-            if (landingTime <= departureTime)
+            // Check logic validation
+            if (flight.LandingTime <= flight.DepartureTime)
             {
-                ModelState.AddModelError("", "Landing time must be after departure time.");
-                return View();
+                ModelState.AddModelError("LandingTime", "Landing time must be after departure time.");
             }
 
-            var flight = new Flight
+            // This checks the [Required] and [Range] attributes in your Flight class
+            if (ModelState.IsValid)
             {
-                DepartureLocation = departureLocation,
-                LandingLocation = landingLocation,
-                DepartureTime = departureTime,
-                LandingTime = landingTime,
-                PlaneType = planeType,
-                PlaneId = planeId,
-                PilotName = pilotName,
-                PassengerCapacity = passengerCapacity,
-                BusinessClassCapacity = businessClassCapacity
-            };
+                try
+                {
+                    await _flightContext.CreateAsync(flight);
+                    return RedirectToAction(nameof(Create));
 
-            try
-            {
-                await _flightContext.CreateAsync(flight);
-                return RedirectToAction(nameof(Index));
+                }
+                catch (Exception ex)
+                {
+                    ModelState.AddModelError("", "Database error: " + ex.Message);
+                }
             }
-            catch (Exception ex)
-            {
-                ModelState.AddModelError("", "Write error: " + ex.Message);
-                return View();
-            }
+
+            return View(flight);
         }
 
         [HttpPost]
         [Authorize(Roles = "Admin,Employee")]
+        [ValidateAntiForgeryToken] // Added for security
         public async Task<IActionResult> Delete(int id)
         {
-            await _flightContext.DeleteAsync(id);
+            try
+            {
+                await _flightContext.DeleteAsync(id);
+            }
+            catch (Exception ex)
+            {
+                // Optionally handle delete errors (e.g. flight has reservations)
+                TempData["Error"] = "Could not delete flight: " + ex.Message;
+            }
             return RedirectToAction(nameof(Index));
         }
     }

@@ -25,27 +25,59 @@ namespace DataLayer.Contexts
 
         public async Task SeedDataAsync(string adminPass, string adminEmail)
         {
+
+            // Ensure the roles exist in the database so AddToRoleAsync doesn't fail
+            string[] roleNames = { UserRole.Admin.ToString(), UserRole.Employee.ToString() };
+
+            foreach (var roleName in roleNames)
+            {
+                var roleExist = await _context.Roles.AnyAsync(r => r.Name == roleName);
+                if (!roleExist)
+                {
+                    // If you have a RoleManager injected, use that, 
+                    // otherwise you can add it directly to the context:
+                    _context.Roles.Add(new IdentityRole(roleName));
+                }
+            }
+            await _context.SaveChangesAsync();
+
             //await context.Database.MigrateAsync();
+            //bool anyUsers = await _context.Users.AnyAsync();
+            //int userRoles = await _context.UserRoles.CountAsync();
 
-            int userRoles = await _context.UserRoles.CountAsync();
+            //if (!anyUsers)
+            //{
+            //    Create the official first Admin from scratch
+            //   User admin = new User
+            //   {
+            //       UserName = "admin",
+            //       Email = "deni@dsoft-bg.com",
+            //       FirstName = "System",
+            //       LastName = "Admin",
+            //       PersonalId = "0000000000",
+            //       Address = "System",
+            //       PhoneNumber = "0000000000"
+            //   };
+            //    IdentityResult result = await _userManager.CreateAsync(admin, adminPass);
+            //    if (result.Succeeded)
+            //    {
+            //        await _userManager.AddToRoleAsync(admin, UserRole.Admin.ToString());
+            //    }
+            //}
 
-            if (userRoles == 0)
-            {
-                await ConfigureAdminAccountAsync(adminPass, adminEmail);
-            }
         }
 
-        public async Task ConfigureAdminAccountAsync(string password, string email)
-        {
-            User adminIdentityUser = await _context.Users.FirstAsync();
+        //public async Task ConfigureAdminAccountAsync(string password, string email)
+        //{
+        //    User adminIdentityUser = await _context.Users.FirstAsync();
 
-            if (adminIdentityUser != null)
-            {
-                await _userManager.AddToRoleAsync(adminIdentityUser, UserRole.Admin.ToString());
-                await _userManager.AddPasswordAsync(adminIdentityUser, password);
-                await _userManager.SetEmailAsync(adminIdentityUser, email);
-            }
-        }
+        //    if (adminIdentityUser != null)
+        //    {
+        //        await _userManager.AddToRoleAsync(adminIdentityUser, UserRole.Admin.ToString());
+        //        await _userManager.AddPasswordAsync(adminIdentityUser, password);
+        //        await _userManager.SetEmailAsync(adminIdentityUser, email);
+        //    }
+        //}
 
         #endregion
 
@@ -56,7 +88,8 @@ namespace DataLayer.Contexts
         {
             try
             {
-                User user = new User
+                // 1. Create the user object from the parameters
+                User newUser = new User
                 {
                     UserName = username,
                     Email = email,
@@ -66,29 +99,37 @@ namespace DataLayer.Contexts
                     Address = address,
                     PhoneNumber = phoneNumber
                 };
-                IdentityResult result = await _userManager.CreateAsync(user, password);
+
+                // 2. Check how many users exist BEFORE we add this one
+                var userCount = await _userManager.Users.CountAsync();
+
+                // 3. Save the user to the database
+                IdentityResult result = await _userManager.CreateAsync(newUser, password);
 
                 if (!result.Succeeded)
                 {
                     throw new ArgumentException(result.Errors.First().Description);
                 }
 
-                var adminUsers = await _userManager.GetUsersInRoleAsync(UserRole.Admin.ToString());
-
-                if (!adminUsers.Any())
+                // 4. Assign Role based on count
+                if (userCount == 0)
                 {
-                    await _userManager.AddToRoleAsync(user, UserRole.Admin.ToString());
+                    // First person ever? They are the Admin.
+                    await _userManager.AddToRoleAsync(newUser, UserRole.Admin.ToString());
                 }
                 else
                 {
-                    await _userManager.AddToRoleAsync(user, UserRole.Employee.ToString());
+                    // Not the first? They are an Employee.
+                    await _userManager.AddToRoleAsync(newUser, UserRole.Employee.ToString());
                 }
             }
             catch (Exception ex)
             {
-                throw new Exception(ex.Message);
+                throw new Exception("Registration failed: " + ex.Message);
             }
         }
+    
+        
 
         public async Task<User> LogInUserAsync(string username, string password)
         {

@@ -40,6 +40,7 @@ namespace BusinessLayer.Models
 
         public TimeSpan Duration => LandingTime - DepartureTime;
 
-        public virtual ICollection<Reservation> Reservations { get; set; } = new List<Reservation>();
+        // Adding the ? tells the system this doesn't have to come from the form
+        public virtual ICollection<Reservation>? Reservations { get; set; } = new List<Reservation>();
     }
 }

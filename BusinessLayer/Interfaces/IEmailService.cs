@@ -9,5 +9,8 @@ namespace BusinessLayer.Interfaces
     public interface IEmailService
     {
         Task SendReservationConfirmationAsync(string userEmail, int flightNumber, int reservationId);
+
+        Task SendEmailAsync(string email, string subject, string htmlMessage);
     }
 }
+
