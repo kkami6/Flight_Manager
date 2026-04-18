@@ -12,7 +12,7 @@ namespace MVC
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -31,6 +31,7 @@ namespace MVC
             // Identity (single, consistent registration for your custom User)
             builder.Services.AddIdentity<User, IdentityRole>(options =>
             {
+                options.SignIn.RequireConfirmedAccount = false;
                 options.Password.RequireDigit = false;
                 options.Password.RequireLowercase = false;
                 options.Password.RequireUppercase = false;
@@ -40,6 +41,18 @@ namespace MVC
             .AddRoles<IdentityRole>()
             .AddEntityFrameworkStores<FlightManagerDbContext>()
             .AddDefaultTokenProviders();
+
+            builder.Services.ConfigureApplicationCookie(options =>
+            {
+                options.Cookie.HttpOnly = true;
+                options.ExpireTimeSpan = TimeSpan.FromMinutes(60);
+                options.LoginPath = "/Identity/Account/Login";
+                options.SlidingExpiration = true;
+
+                // THIS LINE IS KEY: It allows the cookie to work on localhost without HTTPS
+                options.Cookie.SameSite = SameSiteMode.Lax;
+                options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+            });
 
             // FluentEmail
             var emailSettings = builder.Configuration.GetSection("EmailSettings");
@@ -64,6 +77,13 @@ namespace MVC
             builder.Services.AddScoped<IdentityContext>();
 
             var app = builder.Build();
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var identityContext = scope.ServiceProvider.GetRequiredService<IdentityContext>();
+                // You require parameters here in your signature, even if unused in your current commented-out code
+                await identityContext.SeedDataAsync("Admin123!", "admin@domain.com");
+            }
 
             if (!app.Environment.IsDevelopment())
             {

@@ -1,0 +1,60 @@
+﻿@model BusinessLayer.Models.Flight
+
+<div class="container mt-4">
+    <h2>Edit Flight #@Model.Id</h2>
+    <hr />
+    <div class="row">
+        <div class="col-md-6">
+            <form asp-action="Edit">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <input type="hidden" asp-for="Id" />
+
+                <input type="hidden" asp-for="DepartureLocation" />
+                <input type="hidden" asp-for="LandingLocation" />
+                <input type="hidden" asp-for="PlaneType" />
+                <input type="hidden" asp-for="PlaneId" />
+                <input type="hidden" asp-for="PilotName" />
+                <input type="hidden" asp-for="PassengerCapacity" />
+                <input type="hidden" asp-for="BusinessClassCapacity" />
+
+                <div class="mb-3">
+                    <label class="form-label">Route</label>
+                    <input class="form-control" value="@Model.DepartureLocation to @Model.LandingLocation" disabled />
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="DepartureTime" class="form-label">Departure Time</label>
+                    <input asp-for="DepartureTime" class="form-control" type="datetime-local" />
+                    <span asp-validation-for="DepartureTime" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="LandingTime" class="form-label">Landing Time</label>
+                    <input asp-for="LandingTime" class="form-control" type="datetime-local" />
+                    <span asp-validation-for="LandingTime" class="text-danger"></span>
+                </div>
+
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <a asp-action="AdminIndex" class="btn btn-secondary">Back to List</a>
+                </div>
+            </form>
+        </div>
+
+        <div class="col-md-4 offset-md-1">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5>Current Duration</h5>
+                    <p class="display-6">@Model.Duration.ToString(@"hh\:mm")</p>
+                    <small class="text-muted">Duration is calculated automatically based on landing and departure times.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

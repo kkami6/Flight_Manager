@@ -68,6 +68,49 @@ namespace MVC.Controllers
             return View(viewModel);
         }
 
+        // GET: Flight/Edit/5
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var flight = await _flightContext.ReadAsync(id);
+            if (flight == null)
+            {
+                return NotFound();
+            }
+            return View(flight);
+        }
+
+        // POST: Flight/Edit/5
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, Flight flight)
+        {
+            if (id != flight.Id)
+            {
+                return NotFound();
+            }
+
+            if (flight.LandingTime <= flight.DepartureTime)
+            {
+                ModelState.AddModelError("LandingTime", "Landing time must be after departure time.");
+            }
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    await _flightContext.UpdateAsync(flight);
+                    return RedirectToAction(nameof(AdminIndex)); // Send back to Admin dashboard
+                }
+                catch (Exception ex)
+                {
+                    ModelState.AddModelError("", "Unable to save changes: " + ex.Message);
+                }
+            }
+            return View(flight);
+        }
+
         [Authorize(Roles = "Admin,Employee")]
         public IActionResult Create() => View();
 

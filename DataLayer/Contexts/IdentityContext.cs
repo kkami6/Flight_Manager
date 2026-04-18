@@ -114,14 +114,21 @@ namespace DataLayer.Contexts
                 // 4. Assign Role based on count
                 if (userCount == 0)
                 {
-                    // First person ever? They are the Admin.
+                    // Update Identity Table
                     await _userManager.AddToRoleAsync(newUser, UserRole.Admin.ToString());
+                    // Update custom enum column
+                    newUser.Role = UserRole.Admin;
                 }
                 else
                 {
-                    // Not the first? They are an Employee.
+                    // Update Identity Table
                     await _userManager.AddToRoleAsync(newUser, UserRole.Employee.ToString());
+                    // Update custom enum column
+                    newUser.Role = UserRole.Employee;
                 }
+
+                // Save the enum change to the database
+                await _userManager.UpdateAsync(newUser);
             }
             catch (Exception ex)
             {

@@ -2,14 +2,8 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 #nullable disable
 
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Text.Encodings.Web;
-using System.Threading;
-using System.Threading.Tasks;
+using BusinessLayer.Models;
+using DataLayer.Contexts;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -18,10 +12,18 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
-using BusinessLayer.Models;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using System.Text;
+using System.Text.Encodings.Web;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace MVC.Areas.Identity.Pages.Account
 {
+    
     public class RegisterModel : PageModel
     {
         private readonly SignInManager<User> _signInManager;
@@ -30,13 +32,16 @@ namespace MVC.Areas.Identity.Pages.Account
         private readonly IUserEmailStore<User> _emailStore;
         private readonly ILogger<RegisterModel> _logger;
         private readonly IEmailSender _emailSender;
-
+        private readonly IdentityContext _myIdentityContext;
+        private readonly RoleManager<IdentityRole> _roleManager;
         public RegisterModel(
             UserManager<User> userManager,
             IUserStore<User> userStore,
             SignInManager<User> signInManager,
             ILogger<RegisterModel> logger,
-            IEmailSender emailSender)
+            IEmailSender emailSender,
+            IdentityContext myIdentityContext,
+            RoleManager<IdentityRole> roleManager)
         {
             _userManager = userManager;
             _userStore = userStore;
@@ -44,6 +49,8 @@ namespace MVC.Areas.Identity.Pages.Account
             _signInManager = signInManager;
             _logger = logger;
             _emailSender = emailSender;
+            _myIdentityContext = myIdentityContext;
+            _roleManager = roleManager;
         }
 
         /// <summary>
@@ -126,15 +133,19 @@ namespace MVC.Areas.Identity.Pages.Account
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
         }
 
+
+
         public async Task<IActionResult> OnPostAsync(string returnUrl = null)
         {
             returnUrl ??= Url.Content("~/");
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
+
             if (ModelState.IsValid)
             {
+                // 1. Map your custom fields from Input to User
                 var user = new User
                 {
-                    UserName = Input.Username, // ASP.NET Identity uses 'UserName' internally
+                    UserName = Input.Username,
                     Email = Input.Email,
                     FirstName = Input.FirstName,
                     LastName = Input.LastName,
@@ -142,14 +153,42 @@ namespace MVC.Areas.Identity.Pages.Account
                     Address = Input.Address
                 };
 
-                await _userStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
+                await _userStore.SetUserNameAsync(user, Input.Username, CancellationToken.None);
                 await _emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
+
+                // 2. Create the user
                 var result = await _userManager.CreateAsync(user, Input.Password);
 
                 if (result.Succeeded)
                 {
                     _logger.LogInformation("User created a new account with password.");
+                    if (!await _roleManager.RoleExistsAsync("Admin"))
+                        await _roleManager.CreateAsync(new IdentityRole("Admin"));
 
+                    if (!await _roleManager.RoleExistsAsync("Employee"))
+                        await _roleManager.CreateAsync(new IdentityRole("Employee"));
+                    // --- START CUSTOM ADMIN LOGIC ---
+                    // 3. Check user count to assign Role
+                    var userCount = _userManager.Users.Count();
+
+                    if (userCount == 1)
+                    {
+                        // First user ever -> Admin
+                        await _userManager.AddToRoleAsync(user, UserRole.Admin.ToString());
+                        user.Role = UserRole.Admin;
+                    }
+                    else
+                    {
+                        // Not the first -> Employee
+                        await _userManager.AddToRoleAsync(user, UserRole.Employee.ToString());
+                        user.Role = UserRole.Employee;
+                    }
+
+                    // Update the user record with the enum value
+                    await _userManager.UpdateAsync(user);
+                    // --- END CUSTOM ADMIN LOGIC ---
+
+                    // 4. Handle Email Confirmation (Standard Scaffolded Code)
                     var userId = await _userManager.GetUserIdAsync(user);
                     var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
                     code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
@@ -172,16 +211,15 @@ namespace MVC.Areas.Identity.Pages.Account
                         return LocalRedirect(returnUrl);
                     }
                 }
+
                 foreach (var error in result.Errors)
                 {
                     ModelState.AddModelError(string.Empty, error.Description);
                 }
             }
 
-            // If we got this far, something failed, redisplay form
             return Page();
         }
-
         private User CreateUser()
         {
             try
